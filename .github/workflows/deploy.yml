@@ -35,19 +35,29 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: nixndme
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
     - name: Build Docker image
       run: |
-        docker build -t $IMAGE_NAME:latest .
-        docker build -t $IMAGE_NAME:${{ github.sha }} .
+        docker build -t nixndme/$IMAGE_NAME:latest .
+        docker build -t nixndme/$IMAGE_NAME:${{ github.sha }} .
 
-    - name: Save Docker image
+    - name: Push Docker images to Docker Hub
       run: |
-        docker save $IMAGE_NAME:latest > /tmp/devops-demo.tar
+        docker push nixndme/$IMAGE_NAME:latest
+        docker push nixndme/$IMAGE_NAME:${{ github.sha }}
 
-    - name: Upload Docker image
-      uses: actions/upload-artifact@v4
-      with:
-        name: docker-image
-        path: /tmp/devops-demo.tar
-  # Note: For local demo, you'll manually pull and deploy
-  # In production, this would connect to your K8s cluster
+    - name: Deployment Info
+      run: |
+        echo "🚀 Images pushed to Docker Hub:"
+        echo "  - nixndme/$IMAGE_NAME:latest"
+        echo "  - nixndme/$IMAGE_NAME:${{ github.sha }}"
+        echo ""
+        echo "🔗 Docker Hub: https://hub.docker.com/r/nixndme/$IMAGE_NAME"
+        echo ""
+        echo "📋 To deploy locally run:"
+        echo "kubectl set image deployment/devops-demo-app devops-demo=nixndme/$IMAGE_NAME:latest -n devops-demo"
