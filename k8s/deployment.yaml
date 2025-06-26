@@ -25,7 +25,7 @@ spec:
         - name: NODE_ENV
           value: "production"
         - name: APP_VERSION
-          value: "3.0.0"
+          value: "4.0.0"
         - name: DEPLOYMENT_TIME
           value: "2025-06-26"
         resources:
