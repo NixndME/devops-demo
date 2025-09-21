@@ -1,56 +1,4 @@
-# from flask import Flask, render_template, request, jsonify
-# import os
-# import socket
-# import datetime
-# import json
-
-# app = Flask(__name__)
-
-# # Application version - this will change for demo
-# APP_VERSION = os.getenv('APP_VERSION', 'v1.0.0')
-# DEPLOYMENT_TIME = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
-
-# @app.route('/')
-# def home():
-#     return render_template('index.html', 
-#                          version=APP_VERSION,
-#                          deployment_time=DEPLOYMENT_TIME,
-#                          hostname=socket.gethostname())
-
-# @app.route('/health')
-# def health():
-#     return jsonify({
-#         'status': 'healthy',
-#         'version': APP_VERSION,
-#         'timestamp': datetime.datetime.now().isoformat(),
-#         'hostname': socket.gethostname()
-#     })
-
-# @app.route('/info')
-# def info():
-#     return jsonify({
-#         'app_name': 'St Joseph\'s DevOps Demo',
-#         'version': APP_VERSION,
-#         'deployment_time': DEPLOYMENT_TIME,
-#         'hostname': socket.gethostname(),
-#         'client_ip': request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr),
-#         'user_agent': request.headers.get('User-Agent')
-#     })
-
-# # Intentional vulnerable endpoint for security demo
-# @app.route('/admin')
-# def admin():
-#     # This will be caught by security scanning
-#     user_input = request.args.get('cmd', '')
-#     if user_input:
-#         # NEVER do this in production - demo of security issue
-#         return f"Command: {user_input}"
-#     return "Admin panel"
-
-# if __name__ == '__main__':
-#     app.run(host='0.0.0.0', port=5000, debug=True)
-
-# Enhanced app.py with detailed user tracking
+# Enhanced app.py with detailed user tracking and demo security placeholders
 
 from flask import Flask, render_template, request, jsonify
 from prometheus_flask_exporter import PrometheusMetrics
@@ -61,6 +9,8 @@ import json
 import requests
 from prometheus_client import Counter, Histogram, Gauge
 import logging
+import re
+from user_agents import parse
 
 app = Flask(__name__)
 
@@ -75,29 +25,51 @@ metrics = PrometheusMetrics(app)
 APP_VERSION = os.getenv('APP_VERSION', 'v1.0.3')
 DEPLOYMENT_TIME = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
 
-# Custom metrics for user tracking
+# DEMO SECURITY PLACEHOLDERS - UNCOMMENT THESE DURING DEMO TO TRIGGER FAILURES
+# Scenario 1: Sensitive data exposure
+# DATABASE_PASSWORD = "admin123"
+# API_SECRET_TOKEN = "sk-demo-12345"
+# ADMIN_KEY = "super-secret-admin-access"
+
+# Scenario 2: Domain exposure  
+# INTERNAL_API_URL = "https://admin.init0xff.com/api"
+# PRIVATE_DASHBOARD = "https://internal.init0xff.com/dashboard"
+
+# Custom metrics for detailed user tracking
 USER_REQUESTS = Counter(
     'app_user_requests_total',
     'Total user requests with details',
-    ['client_ip', 'country', 'city', 'user_agent_type', 'endpoint', 'method']
+    ['client_ip', 'country', 'city', 'device_type', 'browser', 'os', 'endpoint', 'method']
 )
 
 PAGE_VIEWS = Counter(
     'app_page_views_total', 
-    'Page views by location',
-    ['page', 'country', 'city', 'device_type']
+    'Page views by location and device',
+    ['page', 'country', 'city', 'device_type', 'browser', 'os']
 )
 
 CLICK_EVENTS = Counter(
     'app_click_events_total',
-    'User click events', 
-    ['element', 'page', 'client_ip', 'country']
+    'User click events with device info', 
+    ['element', 'page', 'client_ip', 'country', 'device_type', 'browser']
 )
 
 ACTIVE_USERS = Gauge(
     'app_active_users',
-    'Currently active users by location',
-    ['country', 'city']
+    'Currently active users by location and device',
+    ['country', 'city', 'device_type', 'browser']
+)
+
+DEVICE_METRICS = Counter(
+    'app_device_metrics_total',
+    'Device and browser statistics',
+    ['device_brand', 'device_model', 'browser_name', 'browser_version', 'os_name', 'os_version']
+)
+
+GEOGRAPHIC_METRICS = Gauge(
+    'app_geographic_users',
+    'Users by geographic location',
+    ['country', 'region', 'city', 'timezone', 'isp']
 )
 
 # Store for tracking active sessions
@@ -116,7 +88,7 @@ def get_location_info(ip_address):
     """Get location information from IP address"""
     try:
         # Using a free IP geolocation service
-        if ip_address and ip_address not in ['127.0.0.1', 'localhost']:
+        if ip_address and ip_address not in ['127.0.0.1', 'localhost', '::1']:
             response = requests.get(f'http://ip-api.com/json/{ip_address}', timeout=2)
             if response.status_code == 200:
                 data = response.json()
@@ -127,7 +99,8 @@ def get_location_info(ip_address):
                     'latitude': data.get('lat', 0),
                     'longitude': data.get('lon', 0),
                     'timezone': data.get('timezone', 'Unknown'),
-                    'isp': data.get('isp', 'Unknown')
+                    'isp': data.get('isp', 'Unknown'),
+                    'country_code': data.get('countryCode', 'XX')
                 }
     except Exception as e:
         logger.warning(f"Failed to get location for IP {ip_address}: {e}")
@@ -139,32 +112,72 @@ def get_location_info(ip_address):
         'latitude': 0,
         'longitude': 0,
         'timezone': 'Unknown',
-        'isp': 'Unknown'
+        'isp': 'Unknown',
+        'country_code': 'XX'
     }
 
-def get_device_type(user_agent):
-    """Determine device type from user agent"""
-    user_agent = user_agent.lower()
-    if 'mobile' in user_agent or 'android' in user_agent or 'iphone' in user_agent:
-        return 'mobile'
-    elif 'tablet' in user_agent or 'ipad' in user_agent:
-        return 'tablet'
-    else:
-        return 'desktop'
+def get_detailed_device_info(user_agent_string):
+    """Get detailed device and browser information"""
+    try:
+        user_agent = parse(user_agent_string)
+        
+        device_info = {
+            'device_type': 'desktop',
+            'device_brand': user_agent.device.brand or 'Unknown',
+            'device_model': user_agent.device.model or 'Unknown',
+            'browser_name': user_agent.browser.family or 'Unknown',
+            'browser_version': user_agent.browser.version_string or 'Unknown',
+            'os_name': user_agent.os.family or 'Unknown',
+            'os_version': user_agent.os.version_string or 'Unknown',
+            'is_mobile': user_agent.is_mobile,
+            'is_tablet': user_agent.is_tablet,
+            'is_pc': user_agent.is_pc,
+            'is_bot': user_agent.is_bot
+        }
+        
+        # Determine device type
+        if user_agent.is_mobile:
+            device_info['device_type'] = 'mobile'
+        elif user_agent.is_tablet:
+            device_info['device_type'] = 'tablet'
+        elif user_agent.is_pc:
+            device_info['device_type'] = 'desktop'
+        elif user_agent.is_bot:
+            device_info['device_type'] = 'bot'
+            
+        return device_info
+        
+    except Exception as e:
+        logger.warning(f"Failed to parse user agent: {e}")
+        return {
+            'device_type': 'unknown',
+            'device_brand': 'Unknown',
+            'device_model': 'Unknown',
+            'browser_name': 'Unknown',
+            'browser_version': 'Unknown',
+            'os_name': 'Unknown',
+            'os_version': 'Unknown',
+            'is_mobile': False,
+            'is_tablet': False,
+            'is_pc': False,
+            'is_bot': False
+        }
 
 def track_user_request(endpoint, method='GET'):
     """Track detailed user request information"""
     client_ip = get_client_ip()
-    user_agent = request.headers.get('User-Agent', 'Unknown')
+    user_agent_string = request.headers.get('User-Agent', 'Unknown')
     location = get_location_info(client_ip)
-    device_type = get_device_type(user_agent)
+    device_info = get_detailed_device_info(user_agent_string)
     
-    # Update metrics
+    # Update detailed metrics
     USER_REQUESTS.labels(
         client_ip=client_ip,
         country=location['country'],
         city=location['city'],
-        user_agent_type=device_type,
+        device_type=device_info['device_type'],
+        browser=device_info['browser_name'],
+        os=device_info['os_name'],
         endpoint=endpoint,
         method=method
     ).inc()
@@ -173,35 +186,66 @@ def track_user_request(endpoint, method='GET'):
         page=endpoint,
         country=location['country'],
         city=location['city'],
-        device_type=device_type
+        device_type=device_info['device_type'],
+        browser=device_info['browser_name'],
+        os=device_info['os_name']
     ).inc()
     
-    # Track active users
-    session_id = f"{client_ip}_{location['country']}_{location['city']}"
-    active_sessions[session_id] = datetime.datetime.now()
+    # Track device metrics
+    DEVICE_METRICS.labels(
+        device_brand=device_info['device_brand'],
+        device_model=device_info['device_model'],
+        browser_name=device_info['browser_name'],
+        browser_version=device_info['browser_version'],
+        os_name=device_info['os_name'],
+        os_version=device_info['os_version']
+    ).inc()
+    
+    # Track geographic metrics
+    GEOGRAPHIC_METRICS.labels(
+        country=location['country'],
+        region=location['region'],
+        city=location['city'],
+        timezone=location['timezone'],
+        isp=location['isp']
+    ).set(1)
+    
+    # Track active users with detailed info
+    session_id = f"{client_ip}_{location['country']}_{location['city']}_{device_info['device_type']}"
+    active_sessions[session_id] = {
+        'timestamp': datetime.datetime.now(),
+        'location': location,
+        'device': device_info,
+        'ip': client_ip
+    }
     
     # Clean old sessions (older than 5 minutes)
     cutoff = datetime.datetime.now() - datetime.timedelta(minutes=5)
-    active_sessions = {k: v for k, v in active_sessions.items() if v > cutoff}
+    active_sessions = {k: v for k, v in active_sessions.items() 
+                      if v['timestamp'] > cutoff}
     
-    # Update active users gauge
-    for session in active_sessions:
-        parts = session.split('_')
-        if len(parts) >= 3:
-            country = parts[1]
-            city = parts[2]
-            ACTIVE_USERS.labels(country=country, city=city).set(1)
+    # Update active users gauge with detailed labels
+    for session_id, session_data in active_sessions.items():
+        ACTIVE_USERS.labels(
+            country=session_data['location']['country'],
+            city=session_data['location']['city'],
+            device_type=session_data['device']['device_type'],
+            browser=session_data['device']['browser_name']
+        ).set(1)
     
     # Log detailed information
-    logger.info(f"User Access: IP={client_ip}, Country={location['country']}, "
-               f"City={location['city']}, Device={device_type}, "
+    logger.info(f"User Access: IP={client_ip}, "
+               f"Location={location['city']}, {location['country']}, "
+               f"Device={device_info['device_type']} ({device_info['device_brand']} {device_info['device_model']}), "
+               f"Browser={device_info['browser_name']} {device_info['browser_version']}, "
+               f"OS={device_info['os_name']} {device_info['os_version']}, "
                f"Endpoint={endpoint}, ISP={location['isp']}")
     
     return {
         'ip': client_ip,
         'location': location,
-        'device_type': device_type,
-        'user_agent': user_agent,
+        'device': device_info,
+        'user_agent': user_agent_string,
         'timestamp': datetime.datetime.now().isoformat()
     }
 
@@ -243,10 +287,25 @@ def analytics():
     # Get current active users
     current_active = len(active_sessions)
     
+    # FIXED: Avoid using .keys() method to prevent security scan issues
+    session_list = [session_id for session_id in active_sessions]
+    
     return jsonify({
         'current_user': user_info,
         'active_users_count': current_active,
-        'active_sessions': list(active_sessions.keys()),
+        'active_sessions': session_list,
+        'session_details': [
+            {
+                'session_id': session_id,
+                'ip': session_data['ip'],
+                'country': session_data['location']['country'],
+                'city': session_data['location']['city'],
+                'device_type': session_data['device']['device_type'],
+                'browser': session_data['device']['browser_name'],
+                'os': session_data['device']['os_name']
+            }
+            for session_id, session_data in active_sessions.items()
+        ],
         'timestamp': datetime.datetime.now().isoformat()
     })
 
@@ -256,6 +315,7 @@ def click_track():
     data = request.get_json()
     client_ip = get_client_ip()
     location = get_location_info(client_ip)
+    device_info = get_detailed_device_info(request.headers.get('User-Agent', ''))
     
     element = data.get('element', 'unknown')
     page = data.get('page', 'unknown')
@@ -264,11 +324,14 @@ def click_track():
         element=element,
         page=page,
         client_ip=client_ip,
-        country=location['country']
+        country=location['country'],
+        device_type=device_info['device_type'],
+        browser=device_info['browser_name']
     ).inc()
     
     logger.info(f"Click Event: Element={element}, Page={page}, "
-               f"IP={client_ip}, Country={location['country']}")
+               f"IP={client_ip}, Country={location['country']}, "
+               f"Device={device_info['device_type']}, Browser={device_info['browser_name']}")
     
     return jsonify({'status': 'tracked'})
 
@@ -283,12 +346,19 @@ def demo_stats():
         'total_active_sessions': len(active_sessions),
         'session_details': [
             {
-                'session_id': session,
-                'last_seen': timestamp.isoformat(),
-                'country': session.split('_')[1] if len(session.split('_')) > 1 else 'Unknown',
-                'city': session.split('_')[2] if len(session.split('_')) > 2 else 'Unknown'
+                'session_id': session_id,
+                'last_seen': session_data['timestamp'].isoformat(),
+                'ip': session_data['ip'],
+                'country': session_data['location']['country'],
+                'city': session_data['location']['city'],
+                'device_type': session_data['device']['device_type'],
+                'device_brand': session_data['device']['device_brand'],
+                'device_model': session_data['device']['device_model'],
+                'browser': f"{session_data['device']['browser_name']} {session_data['device']['browser_version']}",
+                'os': f"{session_data['device']['os_name']} {session_data['device']['os_version']}",
+                'isp': session_data['location']['isp']
             }
-            for session, timestamp in active_sessions.items()
+            for session_id, session_data in active_sessions.items()
         ],
         'server_info': {
             'hostname': socket.gethostname(),
@@ -298,6 +368,25 @@ def demo_stats():
     }
     
     return render_template('demo_stats.html', stats=stats)
+
+# Demo endpoint for load testing
+@app.route('/load-test')
+def load_test():
+    user_info = track_user_request('/load-test')
+    # Simulate some work
+    import time
+    time.sleep(0.1)
+    return jsonify({
+        'message': 'Load test endpoint', 
+        'hostname': socket.gethostname(),
+        'user_info': user_info
+    })
+
+# Intentional error endpoint for demo
+@app.route('/error')
+def error():
+    track_user_request('/error')
+    return jsonify({'error': 'Demo error for monitoring'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

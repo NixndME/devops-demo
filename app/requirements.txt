@@ -3,3 +3,4 @@ gunicorn==21.2.0
 prometheus-flask-exporter==0.23.0
 requests==2.31.0
 prometheus-client==0.17.1
+user-agents==2.2.0
