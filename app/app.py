@@ -1,5 +1,4 @@
 # Enhanced app.py with detailed user tracking and demo security placeholders
-
 from flask import Flask, render_template, request, jsonify
 from prometheus_flask_exporter import PrometheusMetrics
 import os
