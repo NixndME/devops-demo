@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: st-josephs-demo-service
-  namespace: default
+  namespace: st-josephs-demo
   labels:
     app: st-josephs-demo
 spec:
