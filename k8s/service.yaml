@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: st-josephs-demo-service
+  namespace: default
+  labels:
+    app: st-josephs-demo
+spec:
+  selector:
+    app: st-josephs-demo
+  ports:
+  - port: 80
+    targetPort: 5000
+    protocol: TCP
+  type: ClusterIP
