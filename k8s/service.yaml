@@ -5,11 +5,16 @@ metadata:
   namespace: st-josephs-demo
   labels:
     app: st-josephs-demo
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5000"
+    prometheus.io/path: "/metrics"
 spec:
   selector:
     app: st-josephs-demo
   ports:
-  - port: 80
+  - name: http
+    port: 80
     targetPort: 5000
     protocol: TCP
   type: ClusterIP
