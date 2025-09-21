@@ -10,35 +10,35 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: st-josephs-demo
-  minReplicas: 1
-  maxReplicas: 5
+  minReplicas: 3 # Always keep 3 running
+  maxReplicas: 20 # Scale up to 20 for thousands of users
   metrics:
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 70
+        averageUtilization: 60 # Scale when CPU > 60%
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 70 # Scale when memory > 70%
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 60
+      stabilizationWindowSeconds: 60 # Fast scaling for demo spikes
       policies:
       - type: Percent
-        value: 100
-        periodSeconds: 15
+        value: 100 # Double pods quickly
+        periodSeconds: 30
       - type: Pods
-        value: 2
+        value: 4 # Or add 4 pods at once
         periodSeconds: 60
-      selectPolicy: Max
+      selectPolicy: Max # Use the more aggressive policy
     scaleDown:
-      stabilizationWindowSeconds: 300
+      stabilizationWindowSeconds: 300 # Slow scale down for demo stability
       policies:
       - type: Percent
-        value: 10
+        value: 10 # Remove 10% of pods
         periodSeconds: 60

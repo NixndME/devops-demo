@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: st-josephs-demo-config
+  namespace: st-josephs-demo
+  labels:
+    app: st-josephs-demo
+data:
+  APP_VERSION: "v1.0.13"
+  DEMO_MODE: "devops-kubernetes"
+  GEOLOCATION_ENABLED: "true"
+  GEOLOCATION_TIMEOUT: "2.0"
+  MAX_WORKERS: "8"
+  RATE_LIMIT_ENABLED: "true"
+  LOG_LEVEL: "INFO"
+  ENHANCED_TRACKING: "true"

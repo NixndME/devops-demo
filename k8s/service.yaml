@@ -10,6 +10,7 @@ metadata:
     prometheus.io/port: "5000"
     prometheus.io/path: "/metrics"
 spec:
+  type: ClusterIP
   selector:
     app: st-josephs-demo
   ports:
@@ -17,4 +18,4 @@ spec:
     port: 80
     targetPort: 5000
     protocol: TCP
-  type: ClusterIP
+  sessionAffinity: None

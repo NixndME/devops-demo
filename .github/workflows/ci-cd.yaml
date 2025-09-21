@@ -106,6 +106,8 @@
 
 # .github/workflows/ci-cd.yml
 # St Joseph's DevOps Demo - Fixed GitHub Actions Pipeline
+# .github/workflows/ci-cd.yml
+# St Joseph's DevOps Demo - Fixed GitHub Actions Pipeline
 
 name: CI/CD Pipeline
 
@@ -227,10 +229,16 @@ jobs:
           echo "✅ Updated k8s/deployment.yaml"
         fi
 
-        # Also update the ConfigMap with the new version
+        # Update ConfigMap with the new APP_VERSION
+        if [ -f "k8s/configmap.yaml" ]; then
+          sed -i "s|APP_VERSION: \".*\"|APP_VERSION: \"$VERSION\"|g" k8s/configmap.yaml
+          echo "✅ Updated ConfigMap APP_VERSION"
+        fi
+
+        # Also update any hardcoded versions in deployment.yaml  
         if [ -f "k8s/deployment.yaml" ]; then
-          sed -i "s|APP_VERSION: \".*\"|APP_VERSION: \"$VERSION\"|g" k8s/deployment.yaml
-          echo "✅ Updated APP_VERSION in deployment"
+          sed -i "s|version: v[0-9]*\.[0-9]*\.[0-9]*|version: $VERSION|g" k8s/deployment.yaml
+          echo "✅ Updated deployment labels"
         fi
 
         # Show what changed
