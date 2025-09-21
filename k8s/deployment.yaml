@@ -59,7 +59,7 @@ metadata:
     app: st-josephs-demo
     version: v1.0.21
 spec:
-  replicas: 4 # Start with 4 replicas for demo load
+  replicas: 3 # Start with 4 replicas for demo load
   strategy:
     type: RollingUpdate
     rollingUpdate:
