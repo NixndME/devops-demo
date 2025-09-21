@@ -22,12 +22,12 @@ spec:
     spec:
       containers:
       - name: app
-        image: nixndme/st-josephs-demo:v1.0.3
+        image: nixndme/st-josephs-demo:v1.0.9
         ports:
         - containerPort: 5000
         env:
         - name: APP_VERSION
-          value: "v1.0.3"
+          value: "v1.0.9"
         resources:
           requests:
             memory: "64Mi"
