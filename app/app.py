@@ -177,8 +177,8 @@ def track_user_request(endpoint, method='GET'):
     ).inc()
     
     # Track active users
-    session_key = f"{client_ip}_{location['country']}_{location['city']}"
-    active_sessions[session_key] = datetime.datetime.now()
+    session_id = f"{client_ip}_{location['country']}_{location['city']}"
+    active_sessions[session_id] = datetime.datetime.now()
     
     # Clean old sessions (older than 5 minutes)
     cutoff = datetime.datetime.now() - datetime.timedelta(minutes=5)
