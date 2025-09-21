@@ -1,4 +1,5 @@
 # Enhanced app.py with detailed user tracking and demo security placeholders
+
 from flask import Flask, render_template, request, jsonify
 from prometheus_flask_exporter import PrometheusMetrics
 import os
@@ -278,7 +279,6 @@ def analytics():
     # Get current active users
     current_active = len(active_sessions)
     
-    # FIXED: Avoid using .keys() method to prevent security scan issues
     session_list = [session_id for session_id in active_sessions]
     
     return jsonify({
