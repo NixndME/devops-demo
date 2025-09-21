@@ -69,7 +69,7 @@ jobs:
       uses: docker/login-action@v3
       with:
         username: ${{ env.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        password: ${{ secrets.DOCKER_HUB_TOKEN }} # ← CHANGED: Use correct secret name
 
     - name: Generate version
       id: version
@@ -97,4 +97,4 @@ jobs:
         git config --local user.name "GitHub Action"
         git add k8s/deployment.yaml
         git commit -m "Update image to ${{ steps.version.outputs.version }}" || exit 0
-        git push
+        git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git  # ← ADDED: GitHub token for auth
