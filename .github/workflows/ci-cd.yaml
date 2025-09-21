@@ -104,6 +104,9 @@
 # .github/workflows/ci-cd.yml
 # St Joseph's DevOps Demo - Fixed GitHub Actions Pipeline
 
+# .github/workflows/ci-cd.yml
+# St Joseph's DevOps Demo - Fixed GitHub Actions Pipeline
+
 name: CI/CD Pipeline
 
 on:
@@ -215,18 +218,38 @@ jobs:
 
     - name: Update Kubernetes manifests
       run: |
-        # Update the image version in your k8s manifests
-        if [ -f "k8s-manifests.yaml" ]; then
-          sed -i "s|image: nixndme/st-josephs-demo:.*|image: nixndme/st-josephs-demo:${{ steps.version.outputs.version }}|g" k8s-manifests.yaml
+        VERSION="${{ steps.version.outputs.version }}"
+        echo "🔄 Updating Kubernetes manifests to version: $VERSION"
+
+        # Update deployment.yaml with new image version
+        if [ -f "k8s/deployment.yaml" ]; then
+          sed -i "s|image: nixndme/st-josephs-demo:.*|image: nixndme/st-josephs-demo:$VERSION|g" k8s/deployment.yaml
+          echo "✅ Updated k8s/deployment.yaml"
         fi
+
+        # Also update the ConfigMap with the new version
+        if [ -f "k8s/deployment.yaml" ]; then
+          sed -i "s|APP_VERSION: \".*\"|APP_VERSION: \"$VERSION\"|g" k8s/deployment.yaml
+          echo "✅ Updated APP_VERSION in deployment"
+        fi
+
+        # Show what changed
+        git diff k8s/
 
     - name: Commit updated manifests
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        if [ -f "k8s-manifests.yaml" ]; then
-          git add k8s-manifests.yaml
-          git commit -m "Update image to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
+
+        # Add all k8s files that might have changed
+        git add k8s/
+
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🚀 Update image to ${{ steps.version.outputs.version }}" 
+          echo "✅ Committed manifest updates"
         fi
 
     - name: Push changes
