@@ -26,7 +26,6 @@ APP_VERSION = os.getenv('APP_VERSION', 'v1.0.3')
 DEPLOYMENT_TIME = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
 
 
-
 # Custom metrics for detailed user tracking
 USER_REQUESTS = Counter(
     'app_user_requests_total',
@@ -157,6 +156,8 @@ def get_detailed_device_info(user_agent_string):
 
 def track_user_request(endpoint, method='GET'):
     """Track detailed user request information"""
+    global active_sessions  # FIX: Add global declaration to fix scoping issue
+    
     client_ip = get_client_ip()
     user_agent_string = request.headers.get('User-Agent', 'Unknown')
     location = get_location_info(client_ip)
