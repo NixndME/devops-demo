@@ -23,7 +23,7 @@
 #     spec:
 #       containers:
 #       - name: app
-#         image: nixndme/st-josephs-demo:v1.0.26
+#         image: nixndme/st-josephs-demo:v1.0.27
 #         ports:
 #         - containerPort: 5000
 #         env:
@@ -58,7 +58,7 @@ metadata:
   namespace: st-josephs-demo
   labels:
     app: st-josephs-demo
-    version: v1.0.26
+    version: v1.0.27
 spec:
   replicas: 3 # Start with 4 replicas for demo load
   strategy:
@@ -73,7 +73,7 @@ spec:
     metadata:
       labels:
         app: st-josephs-demo
-        version: v1.0.26
+        version: v1.0.27
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "5000"
@@ -86,7 +86,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: app
-        image: nixndme/st-josephs-demo:v1.0.26
+        image: nixndme/st-josephs-demo:v1.0.27
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
