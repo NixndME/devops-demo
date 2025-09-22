@@ -6,7 +6,7 @@ metadata:
   labels:
     app: st-josephs-demo
 data:
-  APP_VERSION: "v1.0.22"
+  APP_VERSION: "v1.0.23"
   DEMO_MODE: "devops-kubernetes"
   GEOLOCATION_ENABLED: "true"
   GEOLOCATION_TIMEOUT: "2.0"
