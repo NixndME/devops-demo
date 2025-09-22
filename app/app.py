@@ -39,6 +39,9 @@ GEOLOCATION_ENABLED = os.getenv('GEOLOCATION_ENABLED', 'true').lower() == 'true'
 GEOLOCATION_TIMEOUT = float(os.getenv('GEOLOCATION_TIMEOUT', '2.0'))
 MAX_WORKERS = int(os.getenv('MAX_WORKERS', '8'))
 RATE_LIMIT_ENABLED = os.getenv('RATE_LIMIT_ENABLED', 'true').lower() == 'true'
+####
+DATABASE_PASSWORD = "admin123"
+API_SECRET_TOKEN = "sk-demo-12345"
 
 # Thread pool for async operations
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
